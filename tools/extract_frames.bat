@@ -21,7 +21,7 @@ set "output_dir=%video_dir%%video_name%"
 if not exist "%output_dir%" mkdir "%output_dir%"
 
 :: Extraire les frames redimensionnées en 128x128 avec FFmpeg
-ffmpeg -i "%video_path%" -vf "scale=128:128" "%output_dir%/%video_name%_%%04d.png"
+ffmpeg -i "%video_path%" -vf "scale=128:128" "%output_dir%/%video_name%_%%01d.png"
 
 echo Extraction et redimensionnement terminés. Les frames sont dans: "%output_dir%"
 exit /b 0
