@@ -80,23 +80,16 @@ class VideoAnnotator:
 
         self.preview_canvas.images = []
 
-        button_frame = tk.Frame(self.preview_window)
-        button_frame.pack(fill=tk.X, side=tk.BOTTOM)
-
-        prev_frame_button = tk.Button(button_frame, text="◀ Frame Précédente", command=self.previous_frame)
-        prev_frame_button.pack(side=tk.LEFT, padx=10)
-
-        next_frame_button = tk.Button(button_frame, text="▶ Frame Suivante", command=self.next_frame)
-        next_frame_button.pack(side=tk.RIGHT, padx=10)
-
-        radio_frame = tk.Frame(self.preview_window)
-        radio_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=10)
-
         self.preview_window.bind("<Configure>", self.on_resize)
 
     def create_action_window(self):
         self.action_window = tk.Toplevel(self.root)
-        self.action_window.title("Actions et Barres")
+
+        self.action_label = tk.Label(self.action_window, text="Class: ")
+        self.action_label.pack(pady=10)
+
+
+        self.action_window.title("Actions")
 
         action_frame = tk.Frame(self.action_window)
         action_frame.pack(side=tk.LEFT, padx=10, pady=10)
@@ -120,8 +113,6 @@ class VideoAnnotator:
             button.grid(row=bars.index(bar), column=0, pady=5)
             self.bar_buttons[bar] = {"button": button, "state": False}
 
-        self.action_label = tk.Label(self.action_window, text="Class: ")
-        self.action_label.pack(pady=10)
 
     def toggle_action(self, action):
         for btn_action, btn_data in self.action_buttons.items():
