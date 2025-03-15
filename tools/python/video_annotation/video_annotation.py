@@ -1,6 +1,6 @@
-import cv2
 import tkinter as tk
 from tkinter import filedialog, ttk
+import cv2
 import threading
 
 class VideoAnnotator:
@@ -16,6 +16,7 @@ class VideoAnnotator:
 
         self.create_widgets()
         self.create_preview_window()
+        self.create_action_window()  # Nouvelle fenêtre pour les actions et les barres
 
     def create_widgets(self):
         self.canvas = tk.Canvas(self.root)
@@ -60,6 +61,99 @@ class VideoAnnotator:
 
         # Bind à l'événement de redimensionnement de la fenêtre pour actualiser l'affichage
         self.preview_window.bind("<Configure>", self.on_resize)
+
+    def create_action_window(self):
+        self.action_window = tk.Toplevel(self.root)
+        self.action_window.title("Actions et Barres")
+
+        # Section Action
+        action_frame = tk.Frame(self.action_window)
+        action_frame.pack(side=tk.LEFT, padx=10, pady=10)
+
+        self.action_buttons = {}
+        actions = ["Control", "Shot_Goal", "Shot_Blocked", "Shot_Missed", "Shot_Unknown", "KickOff"]
+
+        for action in actions:
+            button = tk.Button(action_frame, text=action, command=lambda action=action: self.toggle_action(action))
+            button.grid(row=actions.index(action), column=0, pady=5)
+            self.action_buttons[action] = {"button": button, "state": False}
+
+        # Section Bar
+        bar_frame = tk.Frame(self.action_window)
+        bar_frame.pack(side=tk.LEFT, padx=10, pady=10)
+
+        self.bar_buttons = {}
+        bars = ["Bar_2-1", "Bar_2-2", "Bar_1-3", "Bar_2-5", "Bar_1-5", "Bar_2-3", "Bar_1-2", "Bar_1-1", "None"]
+
+        for bar in bars:
+            button = tk.Button(bar_frame, text=bar, command=lambda bar=bar: self.toggle_bar(bar))
+            button.grid(row=bars.index(bar), column=0, pady=5)
+            self.bar_buttons[bar] = {"button": button, "state": False}
+
+        # Affichage du nom de l'action
+        self.action_label = tk.Label(self.action_window, text="Class: ")
+        self.action_label.pack(pady=10)
+
+    def toggle_action(self, action):
+        # Réinitialise l'état de tous les boutons de la section Action
+        for btn_action, btn_data in self.action_buttons.items():
+            if btn_action != action:
+                btn_data["button"].config(bg="SystemButtonFace")  # Réinitialiser la couleur
+                btn_data["state"] = False
+
+        # Change la couleur du bouton sélectionné
+        if not self.action_buttons[action]["state"]:
+            self.action_buttons[action]["button"].config(bg="yellow")
+            self.action_buttons[action]["state"] = True
+        else:
+            self.action_buttons[action]["button"].config(bg="SystemButtonFace")
+            self.action_buttons[action]["state"] = False
+
+        # Si l'action "KickOff" est sélectionnée, automatiquement sélectionner "None"
+        if action == "KickOff":
+            self.toggle_bar("None")  # Sélectionne le bouton "None" dans la section Bar
+
+        # Mettre à jour le nom de l'action
+        self.update_action_class()
+
+    def toggle_bar(self, bar):
+        # Réinitialise l'état de tous les boutons de la section Bar
+        for btn_bar, btn_data in self.bar_buttons.items():
+            if btn_bar != bar:
+                btn_data["button"].config(bg="SystemButtonFace")  # Réinitialiser la couleur
+                btn_data["state"] = False
+
+        # Change la couleur du bouton sélectionné
+        if not self.bar_buttons[bar]["state"]:
+            self.bar_buttons[bar]["button"].config(bg="yellow")
+            self.bar_buttons[bar]["state"] = True
+        else:
+            self.bar_buttons[bar]["button"].config(bg="SystemButtonFace")
+            self.bar_buttons[bar]["state"] = False
+
+        # Mettre à jour le nom de l'action
+        self.update_action_class()
+
+    def update_action_class(self):
+        # Vérifie si un bouton Control est sélectionné
+        action = None
+        for action_name, btn_data in self.action_buttons.items():
+            if btn_data["state"]:
+                action = action_name
+                break
+
+        # Vérifie si un bouton Bar est sélectionné
+        bar = None
+        for bar_name, btn_data in self.bar_buttons.items():
+            if btn_data["state"]:
+                bar = bar_name
+                break
+
+        # Affiche la classe si une action et une barre sont sélectionnées
+        if action and bar:
+            self.action_label.config(text=f"Class: {action}_{bar}")
+        else:
+            self.action_label.config(text="Class: ")
 
     def open_video(self):
         self.video_path = filedialog.askopenfilename(filetypes=[("Videos", "*.mp4;*.avi;*.mov")])
