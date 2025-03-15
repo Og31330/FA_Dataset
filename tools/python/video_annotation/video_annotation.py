@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 import cv2
 import threading
+import os
 
 class VideoAnnotator:
     def __init__(self, root):
@@ -13,10 +14,13 @@ class VideoAnnotator:
         self.playing = False
         self.frame_number = 0
         self.speed = 1.0
+        self.output_dir = ""
+        self.export_size = 224
+        self.selected_class = ""
 
         self.create_widgets()
         self.create_preview_window()
-        self.create_action_window()  # Nouvelle fenêtre pour les actions et les barres
+        self.create_action_window()
 
     def create_widgets(self):
         self.canvas = tk.Canvas(self.root)
@@ -44,10 +48,22 @@ class VideoAnnotator:
         self.frame_label = tk.Label(control_frame, text="Frame: 0")
         self.frame_label.grid(row=0, column=5)
 
-        self.speed_combo = ttk.Combobox(control_frame, values=["x0.5", "x1", "x1.2", "x1.5", "x2", "x3", "x5", "x10"], state="readonly")
+        self.speed_combo = ttk.Combobox(control_frame, values=["x0.5", "x1", "x1.2", "x1.5", "x2", "x3", "x5", "x10", "x30"], state="readonly")
         self.speed_combo.current(1)
         self.speed_combo.bind("<<ComboboxSelected>>", self.change_speed)
         self.speed_combo.grid(row=0, column=6)
+
+        size_label = tk.Label(control_frame, text="Taille exportée:")
+        size_label.grid(row=0, column=7)
+        self.size_entry = tk.Entry(control_frame, width=5)
+        self.size_entry.insert(0, str(self.export_size))
+        self.size_entry.grid(row=0, column=8)
+
+        output_button = tk.Button(control_frame, text="Répertoire de sortie", command=self.select_output_dir)
+        output_button.grid(row=0, column=9)
+
+        export_button = tk.Button(control_frame, text="Exporter", command=self.export_video)
+        export_button.grid(row=0, column=10)
 
     def create_preview_window(self):
         self.preview_window = tk.Toplevel(self.root)
@@ -56,17 +72,26 @@ class VideoAnnotator:
         self.preview_canvas = tk.Canvas(self.preview_window)
         self.preview_canvas.pack(fill=tk.BOTH, expand=True)
 
-        # Création d'une liste vide pour stocker les images de l'aperçu
         self.preview_canvas.images = []
 
-        # Bind à l'événement de redimensionnement de la fenêtre pour actualiser l'affichage
+        button_frame = tk.Frame(self.preview_window)
+        button_frame.pack(fill=tk.X, side=tk.BOTTOM)
+
+        prev_frame_button = tk.Button(button_frame, text="◀ Frame Précédente", command=self.previous_frame)
+        prev_frame_button.pack(side=tk.LEFT, padx=10)
+
+        next_frame_button = tk.Button(button_frame, text="▶ Frame Suivante", command=self.next_frame)
+        next_frame_button.pack(side=tk.RIGHT, padx=10)
+
+        radio_frame = tk.Frame(self.preview_window)
+        radio_frame.pack(fill=tk.X, side=tk.BOTTOM, pady=10)
+
         self.preview_window.bind("<Configure>", self.on_resize)
 
     def create_action_window(self):
         self.action_window = tk.Toplevel(self.root)
         self.action_window.title("Actions et Barres")
 
-        # Section Action
         action_frame = tk.Frame(self.action_window)
         action_frame.pack(side=tk.LEFT, padx=10, pady=10)
 
@@ -78,7 +103,6 @@ class VideoAnnotator:
             button.grid(row=actions.index(action), column=0, pady=5)
             self.action_buttons[action] = {"button": button, "state": False}
 
-        # Section Bar
         bar_frame = tk.Frame(self.action_window)
         bar_frame.pack(side=tk.LEFT, padx=10, pady=10)
 
@@ -90,18 +114,15 @@ class VideoAnnotator:
             button.grid(row=bars.index(bar), column=0, pady=5)
             self.bar_buttons[bar] = {"button": button, "state": False}
 
-        # Affichage du nom de l'action
         self.action_label = tk.Label(self.action_window, text="Class: ")
         self.action_label.pack(pady=10)
 
     def toggle_action(self, action):
-        # Réinitialise l'état de tous les boutons de la section Action
         for btn_action, btn_data in self.action_buttons.items():
             if btn_action != action:
-                btn_data["button"].config(bg="SystemButtonFace")  # Réinitialiser la couleur
+                btn_data["button"].config(bg="SystemButtonFace")
                 btn_data["state"] = False
 
-        # Change la couleur du bouton sélectionné
         if not self.action_buttons[action]["state"]:
             self.action_buttons[action]["button"].config(bg="yellow")
             self.action_buttons[action]["state"] = True
@@ -109,21 +130,17 @@ class VideoAnnotator:
             self.action_buttons[action]["button"].config(bg="SystemButtonFace")
             self.action_buttons[action]["state"] = False
 
-        # Si l'action "KickOff" est sélectionnée, automatiquement sélectionner "None"
         if action == "KickOff":
-            self.toggle_bar("None")  # Sélectionne le bouton "None" dans la section Bar
+            self.toggle_bar("None")
 
-        # Mettre à jour le nom de l'action
         self.update_action_class()
 
     def toggle_bar(self, bar):
-        # Réinitialise l'état de tous les boutons de la section Bar
         for btn_bar, btn_data in self.bar_buttons.items():
             if btn_bar != bar:
-                btn_data["button"].config(bg="SystemButtonFace")  # Réinitialiser la couleur
+                btn_data["button"].config(bg="SystemButtonFace")
                 btn_data["state"] = False
 
-        # Change la couleur du bouton sélectionné
         if not self.bar_buttons[bar]["state"]:
             self.bar_buttons[bar]["button"].config(bg="yellow")
             self.bar_buttons[bar]["state"] = True
@@ -131,28 +148,26 @@ class VideoAnnotator:
             self.bar_buttons[bar]["button"].config(bg="SystemButtonFace")
             self.bar_buttons[bar]["state"] = False
 
-        # Mettre à jour le nom de l'action
         self.update_action_class()
 
     def update_action_class(self):
-        # Vérifie si un bouton Control est sélectionné
         action = None
         for action_name, btn_data in self.action_buttons.items():
             if btn_data["state"]:
                 action = action_name
                 break
 
-        # Vérifie si un bouton Bar est sélectionné
         bar = None
         for bar_name, btn_data in self.bar_buttons.items():
             if btn_data["state"]:
                 bar = bar_name
                 break
 
-        # Affiche la classe si une action et une barre sont sélectionnées
         if action and bar:
-            self.action_label.config(text=f"Class: {action}_{bar}")
+            self.selected_class = f"{action}_{bar}"
+            self.action_label.config(text=f"Class: {self.selected_class}")
         else:
+            self.selected_class = ""
             self.action_label.config(text="Class: ")
 
     def open_video(self):
@@ -197,7 +212,7 @@ class VideoAnnotator:
             self.update_frame()
 
     def change_speed(self, event):
-        speed_map = {"x0.5": 0.5, "x1": 1.0, "x1.2": 1.2, "x1.5": 1.5, "x2": 2.0, "x3": 3.0, "x5": 5.0, "x10": 10.0}
+        speed_map = {"x0.5": 0.5, "x1": 1.0, "x1.2": 1.2, "x1.5": 1.5, "x2": 2.0, "x3": 3.0, "x5": 5.0, "x10": 10.0, "x30": 0.0}
         self.speed = speed_map[self.speed_combo.get()]
 
     def update_frame(self):
@@ -216,54 +231,84 @@ class VideoAnnotator:
 
     def update_preview(self):
         preview_frames = []
-
-        # Efface les anciennes images avant d'afficher les nouvelles
         self.preview_canvas.delete("all")
-
-        # Crée une liste pour stocker les images de l'aperçu
         self.preview_canvas.images = []
 
-        # Obtient la taille actuelle de la fenêtre
         window_width = self.preview_window.winfo_width()
         window_height = self.preview_window.winfo_height()
 
-        # Calcul de la taille des images pour les adapter à la fenêtre
-        image_width = window_width // 4 - 10  # 4 images par ligne
-        image_height = (window_height // 2) - 10  # 2 lignes d'images
+        image_width = window_width // 4 - 10
+        image_height = (window_height // 2) - 10
 
-        # Modifié pour afficher 8 images sur 2 lignes, avec 4 images par ligne
-        for i in range(8):  # Affiche 8 images
+        for i in range(8):
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_number + i + 1)
             ret, frame = self.cap.read()
             if ret:
-                frame = cv2.resize(frame, (image_width, image_height))  # Redimensionner les images
+                frame = cv2.resize(frame, (image_width, image_height))
                 img = tk.PhotoImage(data=cv2.imencode('.ppm', frame)[1].tobytes())
                 preview_frames.append(img)
-                
-                # Stocke chaque image dans la liste
                 self.preview_canvas.images.append(img)
 
-        # Affiche les images en 2 lignes, 4 images par ligne
-        spacing = 10  # Espacement entre les images
+        spacing = 10
 
         for idx, img in enumerate(preview_frames):
-            row = idx // 4  # Déterminer la ligne (0 ou 1)
-            col = idx % 4  # Déterminer la colonne (0 à 3)
+            row = idx // 4
+            col = idx % 4
 
-            # Calculer la position des images
             x_position = col * (image_width + spacing)
             y_position = row * (image_height + spacing)
 
             self.preview_canvas.create_image(x_position, y_position, anchor=tk.NW, image=img)
-
-            # Maintient la référence à chaque image
             self.preview_canvas.images[idx] = img
 
     def on_resize(self, event):
-        """Met à jour l'affichage des images lorsque la fenêtre est redimensionnée."""
         self.update_preview()
+
+    def select_output_dir(self):
+        self.output_dir = filedialog.askdirectory()
+        if self.output_dir:
+            print(f"Répertoire de sortie sélectionné: {self.output_dir}")
+
+    def export_video(self):
+        if not self.output_dir:
+            print("Veuillez sélectionner un répertoire de sortie.")
+            return
+
+        if not self.selected_class:
+            print("Veuillez sélectionner une classe.")
+            return
+
+        try:
+            self.export_size = int(self.size_entry.get())
+        except ValueError:
+            print("Veuillez entrer une taille valide.")
+            return
+
+        class_output_dir = os.path.join(self.output_dir, self.selected_class)
+
+        if not os.path.exists(class_output_dir):
+            os.makedirs(class_output_dir)
+
+        frames = []
+        for i in range(8):
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_number + i + 1)
+            ret, frame = self.cap.read()
+            if ret:
+                frame = cv2.resize(frame, (self.export_size, self.export_size))
+                frames.append(frame)
+
+        video_name = os.path.splitext(os.path.basename(self.video_path))[0]
+        output_file = os.path.join(class_output_dir, f"{video_name}_{self.selected_class}_{self.frame_number}.avi")
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter(output_file, fourcc, 8.0, (self.export_size, self.export_size))
+
+        for frame in frames:
+            out.write(frame)
+
+        out.release()
+        print(f"Vidéo exportée vers {output_file}")
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = VideoAnnotator(root)
+    annotator = VideoAnnotator(root)
     root.mainloop()
