@@ -14,9 +14,15 @@ class VideoAnnotator:
         self.playing = False
         self.frame_number = 0
         self.speed = 1.0
-        self.output_dir = ""
         self.export_size = 224
         self.selected_class = ""
+
+        # Définir le répertoire par défaut
+        self.default_output_dir = "D:\\FA_Dataset\\dataset\\train"
+        if not os.path.exists(self.default_output_dir):
+            print(f"Erreur: Le répertoire par défaut '{self.default_output_dir}' n'existe pas.")
+        else:
+            self.output_dir = self.default_output_dir
 
         self.create_widgets()
         self.create_preview_window()
