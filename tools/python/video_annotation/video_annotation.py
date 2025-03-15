@@ -212,7 +212,7 @@ class VideoAnnotator:
             self.update_frame()
 
     def change_speed(self, event):
-        speed_map = {"x0.5": 0.5, "x1": 1.0, "x1.2": 1.2, "x1.5": 1.5, "x2": 2.0, "x3": 3.0, "x5": 5.0, "x10": 10.0, "x30": 0.0}
+        speed_map = {"x0.5": 0.5, "x1": 1.0, "x1.2": 1.2, "x1.5": 1.5, "x2": 2.0, "x3": 3.0, "x5": 5.0, "x10": 10.0, "x30": 30.0}
         self.speed = speed_map[self.speed_combo.get()]
 
     def update_frame(self):
