@@ -198,7 +198,7 @@ class VideoAnnotator:
 
     def previous_frame(self):
         if self.cap and self.cap.isOpened() and self.frame_number > 0:
-            self.frame_number -= 1
+            self.frame_number -= int(1 * self.speed)
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_number)
             self.update_frame()
 
