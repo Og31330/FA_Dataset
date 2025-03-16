@@ -399,7 +399,7 @@ class VideoAnnotator:
                         class_counts[class_name] = 0
                     class_counts[class_name] += 1
         return class_counts
-    
+
     def display_graph(self, class_counts):
         graph_window = tk.Toplevel(self.root)
         graph_window.title("Graphique d'analyse des vidéos")
