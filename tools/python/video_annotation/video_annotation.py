@@ -3,6 +3,8 @@ from tkinter import filedialog, ttk
 import cv2
 import threading
 import os
+import matplotlib.pyplot as plt
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 class VideoAnnotator:
     def __init__(self, root):
@@ -31,65 +33,68 @@ class VideoAnnotator:
     def create_widgets(self):
         self.canvas = tk.Canvas(self.root)
         self.canvas.pack(fill=tk.BOTH, expand=True)
-    
+
         control_frame = tk.Frame(self.root)
         control_frame.pack(fill=tk.X)
-    
+
         open_button = tk.Button(control_frame, text="Ouvrir vidéo", command=self.open_video)
         open_button.grid(row=0, column=0)
-    
+
         self.play_button = tk.Button(control_frame, text="▶", command=self.toggle_play)
         self.play_button.grid(row=0, column=1)
-    
+
         prev_button = tk.Button(control_frame, text="◀◀◀", command=self.previous_frame)
         prev_button.grid(row=0, column=2)
-    
+
         next_button = tk.Button(control_frame, text="▶▶▶", command=self.next_frame)
         next_button.grid(row=0, column=3)
-    
+
         # Add buttons to navigate one frame at a time
         prev_single_button = tk.Button(control_frame, text="◀◀", command=self.previous_single_frame)
         prev_single_button.grid(row=0, column=4)
-    
+
         next_single_button = tk.Button(control_frame, text="▶▶", command=self.next_single_frame)
         next_single_button.grid(row=0, column=5)
-    
+
         self.slider = tk.Scale(control_frame, from_=0, to=100, orient=tk.HORIZONTAL, command=self.seek)
         self.slider.grid(row=0, column=6, sticky="ew")
         control_frame.columnconfigure(6, weight=1)
-    
+
         self.frame_label = tk.Label(control_frame, text="Frame: 0")
         self.frame_label.grid(row=0, column=7)
-    
+
         self.speed_combo = ttk.Combobox(control_frame, values=["x1", "x2", "x3", "x5", "x10", "x30"], state="readonly")
         self.speed_combo.current(1)
         self.speed_combo.bind("<<ComboboxSelected>>", self.change_speed)
         self.speed_combo.grid(row=0, column=8)
-    
+
         size_label = tk.Label(control_frame, text="Taille exportée:")
         size_label.grid(row=0, column=9)
         self.size_entry = tk.Entry(control_frame, width=5)
         self.size_entry.insert(0, str(self.export_size))
         self.size_entry.grid(row=0, column=10)
-    
+
         output_button = tk.Button(control_frame, text="Répertoire de sortie", command=self.select_output_dir)
         output_button.grid(row=0, column=11)
-    
+
         export_button = tk.Button(control_frame, text="Exporter", command=self.export_video)
         export_button.grid(row=0, column=12)
-    
+
+        analyze_button = tk.Button(control_frame, text="Analyser", command=self.analyze_and_display)
+        analyze_button.grid(row=0, column=13)
+
     def previous_single_frame(self):
         if self.cap and self.cap.isOpened() and self.frame_number > 0:
             self.frame_number -= 1
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_number)
             self.update_frame()
-    
+
     def next_single_frame(self):
         if self.cap and self.cap.isOpened():
             self.frame_number += 1
             self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_number)
             self.update_frame()
-    
+
     def create_preview_window(self):
         self.preview_window = tk.Toplevel(self.root)
         self.preview_window.title("Aperçu des prochaines frames")
@@ -375,6 +380,47 @@ class VideoAnnotator:
 
         out.release()
         print(f"Vidéo exportée vers {output_file}")
+
+    def analyze_and_display(self):
+        if not self.output_dir:
+            print("Veuillez sélectionner un répertoire de sortie.")
+            return
+
+        class_counts = self.count_videos_per_class(self.output_dir)
+        self.display_graph(class_counts)
+
+    def count_videos_per_class(self, directory):
+        class_counts = {}
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                if file.endswith(".avi"):
+                    class_name = os.path.basename(root)
+                    if class_name not in class_counts:
+                        class_counts[class_name] = 0
+                    class_counts[class_name] += 1
+        return class_counts
+    
+    def display_graph(self, class_counts):
+        graph_window = tk.Toplevel(self.root)
+        graph_window.title("Graphique d'analyse des vidéos")
+    
+        fig, ax = plt.subplots(figsize=(10, 6))  # Adjust the figure size
+        classes = list(class_counts.keys())
+        counts = list(class_counts.values())
+    
+        ax.bar(classes, counts)
+        ax.set_xlabel("Classes")
+        ax.set_ylabel("Nombre de vidéos")
+        ax.set_title("Nombre de vidéos extraites par classe")
+    
+        # Rotate class names by 90 degrees and adjust padding
+        ax.set_xticklabels(classes, rotation=90, ha='right')
+        fig.tight_layout()  # Adjust layout to make room for labels
+    
+        canvas = FigureCanvasTkAgg(fig, master=graph_window)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill=tk.BOTH, expand=True)
+
 
 if __name__ == "__main__":
     root = tk.Tk()
