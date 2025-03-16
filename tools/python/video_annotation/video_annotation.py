@@ -88,7 +88,6 @@ class VideoAnnotator:
         self.action_label = tk.Label(self.action_window, text="Class: ")
         self.action_label.pack(pady=10)
 
-
         self.action_window.title("Actions")
 
         action_frame = tk.Frame(self.action_window)
@@ -102,17 +101,27 @@ class VideoAnnotator:
             button.grid(row=actions.index(action), column=0, pady=5)
             self.action_buttons[action] = {"button": button, "state": False}
 
-        bar_frame = tk.Frame(self.action_window)
-        bar_frame.pack(side=tk.LEFT, padx=10, pady=10)
+        starter_frame = tk.Frame(self.action_window)
+        starter_frame.pack(side=tk.LEFT, padx=10, pady=10)
 
-        self.bar_buttons = {}
-        bars = ["Bar_2-1", "Bar_2-2", "Bar_1-3", "Bar_2-5", "Bar_1-5", "Bar_2-3", "Bar_1-2", "Bar_1-1", "None"]
+        self.starter_buttons = {}
+        starters = ["Bar_2-1", "Bar_2-2", "Bar_1-3", "Bar_2-5", "Bar_1-5", "Bar_2-3", "Bar_1-2", "Bar_1-1", "None"]
 
-        for bar in bars:
-            button = tk.Button(bar_frame, text=bar, command=lambda bar=bar: self.toggle_bar(bar))
-            button.grid(row=bars.index(bar), column=0, pady=5)
-            self.bar_buttons[bar] = {"button": button, "state": False}
+        for starter in starters:
+            button = tk.Button(starter_frame, text=starter, command=lambda starter=starter: self.toggle_starter(starter))
+            button.grid(row=starters.index(starter), column=0, pady=5)
+            self.starter_buttons[starter] = {"button": button, "state": False}
 
+        blocker_frame = tk.Frame(self.action_window)
+        blocker_frame.pack(side=tk.LEFT, padx=10, pady=10)
+
+        self.blocker_buttons = {}
+        blockers = ["Bar_2-1", "Bar_2-2", "Bar_1-3", "Bar_2-5", "Bar_1-5", "Bar_2-3", "Bar_1-2", "Bar_1-1", "None"]
+
+        for blocker in blockers:
+            button = tk.Button(blocker_frame, text=blocker, command=lambda blocker=blocker: self.toggle_blocker(blocker))
+            button.grid(row=blockers.index(blocker), column=0, pady=5)
+            self.blocker_buttons[blocker] = {"button": button, "state": False}
 
     def toggle_action(self, action):
         for btn_action, btn_data in self.action_buttons.items():
@@ -128,24 +137,61 @@ class VideoAnnotator:
             self.action_buttons[action]["state"] = False
 
         if action == "KickOff":
-            self.toggle_bar("None")
+            self.force_starter("None")
+            self.force_blocker("None")
+
+        if action in ["Control", "Shot_Goal", "Shot_Missed", "Shot_Unknown"]:
+            self.force_blocker("None")
 
         self.update_action_class()
 
-    def toggle_bar(self, bar):
-        for btn_bar, btn_data in self.bar_buttons.items():
-            if btn_bar != bar:
+    def toggle_starter(self, starter):
+        for btn_starter, btn_data in self.starter_buttons.items():
+            if btn_starter != starter:
                 btn_data["button"].config(bg="SystemButtonFace")
                 btn_data["state"] = False
 
-        if not self.bar_buttons[bar]["state"]:
-            self.bar_buttons[bar]["button"].config(bg="yellow")
-            self.bar_buttons[bar]["state"] = True
+        if not self.starter_buttons[starter]["state"]:
+            self.starter_buttons[starter]["button"].config(bg="yellow")
+            self.starter_buttons[starter]["state"] = True
         else:
-            self.bar_buttons[bar]["button"].config(bg="SystemButtonFace")
-            self.bar_buttons[bar]["state"] = False
+            self.starter_buttons[starter]["button"].config(bg="SystemButtonFace")
+            self.starter_buttons[starter]["state"] = False
 
         self.update_action_class()
+
+    def toggle_blocker(self, blocker):
+        for btn_blocker, btn_data in self.blocker_buttons.items():
+            if btn_blocker != blocker:
+                btn_data["button"].config(bg="SystemButtonFace")
+                btn_data["state"] = False
+
+        if not self.blocker_buttons[blocker]["state"]:
+            self.blocker_buttons[blocker]["button"].config(bg="yellow")
+            self.blocker_buttons[blocker]["state"] = True
+        else:
+            self.blocker_buttons[blocker]["button"].config(bg="SystemButtonFace")
+            self.blocker_buttons[blocker]["state"] = False
+
+        self.update_action_class()
+
+    def force_starter(self, starter):
+        for btn_starter, btn_data in self.starter_buttons.items():
+            if btn_starter == starter:
+                btn_data["button"].config(bg="yellow")
+                btn_data["state"] = True
+            else:
+                btn_data["button"].config(bg="SystemButtonFace")
+                btn_data["state"] = False
+
+    def force_blocker(self, blocker):
+        for btn_blocker, btn_data in self.blocker_buttons.items():
+            if btn_blocker == blocker:
+                btn_data["button"].config(bg="yellow")
+                btn_data["state"] = True
+            else:
+                btn_data["button"].config(bg="SystemButtonFace")
+                btn_data["state"] = False
 
     def update_action_class(self):
         action = None
@@ -154,14 +200,20 @@ class VideoAnnotator:
                 action = action_name
                 break
 
-        bar = None
-        for bar_name, btn_data in self.bar_buttons.items():
+        starter = None
+        for starter_name, btn_data in self.starter_buttons.items():
             if btn_data["state"]:
-                bar = bar_name
+                starter = starter_name
                 break
 
-        if action and bar:
-            self.selected_class = f"{action}_{bar}"
+        blocker = None
+        for blocker_name, btn_data in self.blocker_buttons.items():
+            if btn_data["state"]:
+                blocker = blocker_name
+                break
+
+        if action and starter and blocker:
+            self.selected_class = f"{action}_{starter}_{blocker}"
             self.action_label.config(text=f"Class: {self.selected_class}")
         else:
             self.selected_class = ""
