@@ -54,7 +54,7 @@ class VideoAnnotator:
         self.frame_label = tk.Label(control_frame, text="Frame: 0")
         self.frame_label.grid(row=0, column=5)
 
-        self.speed_combo = ttk.Combobox(control_frame, values=["x0.5", "x1", "x1.2", "x1.5", "x2", "x3", "x5", "x10", "x30"], state="readonly")
+        self.speed_combo = ttk.Combobox(control_frame, values=["x1", "x2", "x3", "x5", "x10", "x30"], state="readonly")
         self.speed_combo.current(1)
         self.speed_combo.bind("<<ComboboxSelected>>", self.change_speed)
         self.speed_combo.grid(row=0, column=6)
@@ -261,7 +261,7 @@ class VideoAnnotator:
             self.update_frame()
 
     def change_speed(self, event):
-        speed_map = {"x0.5": 0.5, "x1": 1.0, "x1.2": 1.2, "x1.5": 1.5, "x2": 2.0, "x3": 3.0, "x5": 5.0, "x10": 10.0, "x30": 30.0}
+        speed_map = {"x1": 1.0, "x3": 3.0, "x5": 5.0, "x10": 10.0, "x30": 30.0}
         self.speed = speed_map[self.speed_combo.get()]
 
     def update_frame(self):
@@ -290,7 +290,7 @@ class VideoAnnotator:
         image_height = (window_height // 2) - 10
 
         for i in range(8):
-            self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_number + i + 1)
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_number + i )
             ret, frame = self.cap.read()
             if ret:
                 frame = cv2.resize(frame, (image_width, image_height))
@@ -340,7 +340,7 @@ class VideoAnnotator:
 
         frames = []
         for i in range(8):
-            self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_number + i + 1)
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, self.frame_number + i )
             ret, frame = self.cap.read()
             if ret:
                 frame = cv2.resize(frame, (self.export_size, self.export_size))
