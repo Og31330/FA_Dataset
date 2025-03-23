@@ -56,29 +56,31 @@ class VideoAnnotator:
         next_single_button = tk.Button(control_frame, text="▶▶", command=self.next_single_frame)
         next_single_button.grid(row=0, column=5)
 
+        export_button = tk.Button(control_frame, text="Exporter", command=self.export_video)
+        export_button.grid(row=0, column=6)
+
+
+
         self.slider = tk.Scale(control_frame, from_=0, to=100, orient=tk.HORIZONTAL, command=self.seek)
-        self.slider.grid(row=0, column=6, sticky="ew")
-        control_frame.columnconfigure(6, weight=1)
+        self.slider.grid(row=0, column=7, sticky="ew")
+        control_frame.columnconfigure(7, weight=1)
 
         self.frame_label = tk.Label(control_frame, text="Frame: 0")
-        self.frame_label.grid(row=0, column=7)
+        self.frame_label.grid(row=0, column=8)
 
         self.speed_combo = ttk.Combobox(control_frame, values=["x1", "x2", "x3", "x5", "x10", "x30"], state="readonly")
         self.speed_combo.current(1)
         self.speed_combo.bind("<<ComboboxSelected>>", self.change_speed)
-        self.speed_combo.grid(row=0, column=8)
+        self.speed_combo.grid(row=0, column=9)
 
         size_label = tk.Label(control_frame, text="Taille exportée:")
-        size_label.grid(row=0, column=9)
+        size_label.grid(row=0, column=10)
         self.size_entry = tk.Entry(control_frame, width=5)
         self.size_entry.insert(0, str(self.export_size))
-        self.size_entry.grid(row=0, column=10)
+        self.size_entry.grid(row=0, column=11)
 
         output_button = tk.Button(control_frame, text="Répertoire de sortie", command=self.select_output_dir)
-        output_button.grid(row=0, column=11)
-
-        export_button = tk.Button(control_frame, text="Exporter", command=self.export_video)
-        export_button.grid(row=0, column=12)
+        output_button.grid(row=0, column=12)
 
         analyze_button = tk.Button(control_frame, text="Analyser", command=self.analyze_and_display)
         analyze_button.grid(row=0, column=13)
