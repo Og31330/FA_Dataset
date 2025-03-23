@@ -295,7 +295,16 @@ class VideoAnnotator:
             ret, frame = self.cap.read()
             if ret:
                 self.slider.set(self.frame_number)
-                self.frame_label.config(text=f"Frame: {self.frame_number}")
+                # Supposons que self.cap est votre objet de capture vidéo
+                total_frames = self.cap.get(cv2.CAP_PROP_FRAME_COUNT)
+                # Calculer le pourcentage d'avancement
+                if total_frames > 0:
+                    percentage_completed = (self.frame_number / total_frames) * 100
+                else:
+                    percentage_completed = 0
+                
+                # Mettre à jour le label avec le numéro de frame et le pourcentage d'avancement
+                self.frame_label.config(text=f"{percentage_completed:.0f}%")
 
                 img = cv2.resize(frame, (self.canvas.winfo_width(), self.canvas.winfo_height()))
                 img = tk.PhotoImage(data=cv2.imencode('.ppm', img)[1].tobytes())
